@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Плейлист зала на 16 часов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one column "track sheet" — summary line, sticky block switcher, then 8 blocks ramping up in tempo; BPM tiers colored like Olympic bumper plates */
+:root {
+  --bg: #EEF0F3;
+  --surface: #FFFFFF;
+  --ink: #14161B;
+  --muted: #5C6370;
+  --line: #D8DCE3;
+  --hover: #F5F6F8;
+  --plate-25: #D3382A;   /* red 25 kg  -> 150+ */
+  --plate-20: #2456C6;   /* blue 20 kg -> 140–149 */
+  --plate-15: #E3AE12;   /* yellow 15 kg -> 130–139 */
+  --plate-10: #2C9650;   /* green 10 kg -> 125–129 */
+  --plate-5: #8C93A0;    /* grey  -> below 125 */
+  --on-plate: #FFFFFF;
+  --on-yellow: #1A1600;
+  --accent: var(--plate-25);
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Golos Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101216; --surface: #181B21; --ink: #ECEEF2; --muted: #9AA1AE; --line: #2A2F38; --hover: #1F232A;
+    --plate-25: #EE5340; --plate-20: #4E7FEE; --plate-15: #F0C02E; --plate-10: #3BB862; --plate-5: #6E7581;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101216; --surface: #181B21; --ink: #ECEEF2; --muted: #9AA1AE; --line: #2A2F38; --hover: #1F232A;
+  --plate-25: #EE5340; --plate-20: #4E7FEE; --plate-15: #F0C02E; --plate-10: #3BB862; --plate-5: #6E7581;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 20px; }
+
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(26px, 7vw, 40px); line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h1 .bpm { color: var(--accent); }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 700; }
+.note { font-size: 13px; color: var(--muted); max-width: 62ch; margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); padding-block: 10px; display: grid; gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.row-ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg button { font: 600 13px var(--f-body); border: 0; background: transparent; color: var(--muted); padding: 7px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.btn { font: 600 13px var(--f-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-plate); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--plate-20); outline-offset: 2px; }
+.jump { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.jump::-webkit-scrollbar { display: none; }
+.jump a { flex: none; text-decoration: none; color: var(--ink); font-size: 12px; font-weight: 500; border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; background: var(--surface); white-space: nowrap; }
+.jump a small { font-family: var(--f-mono); color: var(--muted); margin-left: 4px; }
+
+section.block { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; scroll-margin-top: 110px; }
+.bhead { padding: 16px 16px 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+.bhead-top { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.bnum { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .1em; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 18px; margin: 2px 0 0; line-height: 1.2; text-wrap: balance; }
+.bmeta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.strip { display: flex; align-items: flex-end; gap: 2px; height: 34px; }
+.strip i { flex: 1 1 0; min-width: 2px; border-radius: 2px 2px 0 0; display: block; }
+.strip i.off { opacity: .18; }
+
+ol.tracks { list-style: none; margin: 0; padding: 0; }
+ol.tracks li { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); }
+ol.tracks li:first-child { border-top: 0; }
+ol.tracks li:hover { background: var(--hover); }
+.n { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tt { min-width: 0; }
+.tt .t { font-weight: 600; display: block; overflow-wrap: anywhere; }
+.tt .a { font-size: 13px; color: var(--muted); display: block; overflow-wrap: anywhere; }
+.pill { font-family: var(--f-mono); font-weight: 700; font-size: 12px; min-width: 3.4em; text-align: center; padding: 3px 7px; border-radius: 999px; color: var(--on-plate); font-variant-numeric: tabular-nums; }
+.pill.p15 { color: var(--on-yellow); }
+.dur { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 2.8em; text-align: right; }
+.p25 { background: var(--plate-25); } .p20 { background: var(--plate-20); } .p15 { background: var(--plate-15); } .p10 { background: var(--plate-10); } .p5 { background: var(--plate-5); }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 20; }
+.empty { padding: 14px 16px; color: var(--muted); font-size: 13px; }
+textarea.fallback { position: fixed; left: -9999px; top: 0; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+.links { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 3px; }
+.links a { font-size: 12px; font-weight: 500; color: var(--plate-20); text-decoration: none; }
+.links a:hover { text-decoration: underline; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Фитнес-клуб · фоновая музыка</div>
+    <h1>16 часов на&nbsp;<span class="bpm">~140&nbsp;BPM</span></h1>
+    <div class="stats" id="stats"></div>
+    <p class="note">Только зарубежные треки, без повторов. Блоки идут по нарастанию темпа: утром ровнее, к вечеру жёстче. BPM и длительность ориентировочные: у radio edit и extended-версий они отличаются. Где в треке есть мат, ставьте clean-версию. Ссылки под треком ведут на поиск в магазинах: Beatport и Apple Music для покупки, Яндекс Музыка для прослушивания.</p>
+    <div class="legend" aria-label="Цвета BPM">
+      <span><i class="p25"></i>150+</span>
+      <span><i class="p20"></i>140–149</span>
+      <span><i class="p15"></i>130–139</span>
+      <span><i class="p10"></i>125–129</span>
+      <span><i class="p5"></i>до 125</span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="row-ctrl">
+      <div class="seg" role="group" aria-label="Фильтр по BPM">
+        <button type="button" id="f0" data-min="0" aria-pressed="true">Все</button>
+        <button type="button" id="f130" data-min="130" aria-pressed="false">130+</button>
+        <button type="button" id="f140" data-min="140" aria-pressed="false">140+</button>
+      </div>
+      <button type="button" class="btn primary" id="copyAll">Скопировать всё</button>
+    </div>
+    <nav class="jump" id="jump" aria-label="Блоки"></nav>
+  </div>
+
+  <main id="blocks" style="display:grid;gap:16px"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const DATA = [{"name": "Поп и денс: средний темп", "tracks": [["Pitbull feat. Ne-Yo, Afrojack & Nayer", "Give Me Everything", 129, 252], ["Flo Rida", "Good Feeling", 128, 248], ["P!nk", "Get the Party Started", 129, 191], ["Rihanna", "Where Have You Been", 128, 242], ["Flo Rida", "Club Can't Handle Me", 128, 234], ["Black Eyed Peas", "The Time (Dirty Bit)", 128, 307], ["Pitbull feat. T-Pain", "Hey Baby (Drop It to the Floor)", 128, 234], ["Katy Perry", "Last Friday Night (T.G.I.F.)", 126, 230], ["Enrique Iglesias feat. Pitbull", "I Like It", 129, 231], ["Maroon 5 feat. Christina Aguilera", "Moves Like Jagger", 128, 201], ["Kylie Minogue", "Padam Padam", 128, 166], ["Kesha", "Die Young", 128, 211], ["Walk the Moon", "Shut Up and Dance", 128, 199], ["Lady Gaga", "The Edge of Glory", 128, 320], ["Usher", "Scream", 128, 234], ["Jennifer Lopez feat. Pitbull", "Dance Again", 128, 237], ["Black Eyed Peas", "I Gotta Feeling", 128, 289], ["David Guetta, Anne-Marie & Coi Leray", "Baby Don't Hurt Me", 128, 140], ["Pitbull", "Don't Stop the Party", 127, 206], ["Flo Rida feat. Sia", "Wild Ones", 127, 232], ["Jessie J", "Domino", 127, 231], ["Shakira", "Waka Waka (This Time for Africa)", 127, 202], ["Alexandra Stan", "Mr. Saxobeat", 127, 195], ["Madonna", "Ray of Light", 127, 321], ["The Wanted", "Glad You Came", 127, 198], ["Rihanna", "Only Girl (In the World)", 126, 235], ["P!nk", "So What", 126, 215], ["Katy Perry feat. Snoop Dogg", "California Gurls", 125, 236], ["Nicki Minaj", "Starships", 125, 210], ["Dua Lipa", "Don't Start Now", 124, 183], ["Calvin Harris & Dua Lipa", "One Kiss", 124, 214], ["Avicii", "Wake Me Up", 124, 247]]}, {"name": "EDM / Festival", "tracks": [["David Guetta feat. Sia", "Titanium", 126, 245], ["Calvin Harris", "Feel So Close", 128, 206], ["David Guetta & Showtek feat. Vassy", "Bad", 128, 171], ["Calvin Harris feat. Florence Welch", "Sweet Nothing", 128, 212], ["Swedish House Mafia feat. John Martin", "Don't You Worry Child", 129, 212], ["David Guetta feat. Ne-Yo & Akon", "Play Hard", 130, 201], ["Calvin Harris", "Summer", 128, 222], ["Avicii", "Levels", 126, 199], ["Swedish House Mafia", "Greyhound", 128, 207], ["David Guetta feat. Usher", "Without You", 128, 208], ["Calvin Harris feat. John Newman", "Blame", 128, 214], ["Zedd feat. Foxes", "Clarity", 128, 271], ["Eric Prydz", "Call on Me", 126, 171], ["Swedish House Mafia feat. John Martin", "Save the World", 126, 213], ["Martin Garrix", "Animals", 128, 192], ["Dimitri Vegas & Like Mike vs Martin Garrix", "Tremor", 128, 210], ["David Guetta & Bebe Rexha", "I'm Good (Blue)", 128, 175], ["Calvin Harris feat. Ellie Goulding", "Outside", 128, 227], ["Rihanna feat. Calvin Harris", "We Found Love", 128, 215], ["Zedd feat. Hayley Williams", "Stay the Night", 128, 217], ["Alesso feat. Tove Lo", "Heroes (We Could Be)", 126, 210], ["Avicii vs Nicky Romero", "I Could Be the One", 128, 208], ["Sebastian Ingrosso & Alesso feat. Ryan Tedder", "Calling (Lose My Mind)", 128, 221], ["Hardwell", "Spaceman", 128, 210], ["Afrojack feat. Eva Simons", "Take Over Control", 128, 195], ["Showtek & Justin Prime", "Cannonball", 128, 210], ["DVBBS & Borgeous", "Tsunami", 128, 210], ["Deorro", "Five Hours", 128, 210], ["Armin van Buuren", "Blah Blah Blah", 128, 180], ["Timmy Trumpet & Savage", "Freaks", 128, 210], ["Steve Aoki, Chris Lake & Tujamo", "Boneless", 128, 210], ["Krewella", "Alive", 128, 230], ["Alan Walker", "The Spectre", 128, 193], ["Benny Benassi", "Satisfaction", 130, 180], ["Bob Sinclar", "Rock This Party (Everybody Dance Now)", 128, 200], ["Eric Prydz", "Pjanoo", 126, 210], ["Fedde Le Grand", "Put Your Hands Up for Detroit", 128, 210], ["Mason vs Princess Superstar", "Perfect (Exceeder)", 128, 180]]}, {"name": "Евроденс 90-х", "tracks": [["2 Unlimited", "No Limit", 140, 208], ["Aqua", "Barbie Girl", 130, 197], ["Vengaboys", "Boom, Boom, Boom, Boom!!", 136, 202], ["Eiffel 65", "Blue (Da Ba Dee)", 128, 220], ["Sash!", "Encore Une Fois", 137, 220], ["2 Unlimited", "Twilight Zone", 136, 243], ["Culture Beat", "Mr. Vain", 133, 260], ["La Bouche", "Be My Lover", 133, 240], ["Captain Jack", "Captain Jack", 138, 236], ["Masterboy", "Feel the Heat of the Night", 135, 218], ["Ice MC", "Think About the Way", 133, 255], ["Haddaway", "What Is Love", 124, 270], ["Snap!", "Rhythm Is a Dancer", 124, 222], ["Corona", "The Rhythm of the Night", 125, 265], ["Reel 2 Real", "I Like to Move It", 123, 232], ["Whigfield", "Saturday Night", 129, 220], ["Aqua", "Doctor Jones", 130, 202], ["Rednex", "Cotton Eye Joe", 132, 192], ["Gala", "Freed from Desire", 129, 212], ["Bellini", "Samba de Janeiro", 130, 200], ["Vengaboys", "We Like to Party! (The Vengabus)", 138, 223], ["Eiffel 65", "Move Your Body", 130, 268], ["Alice Deejay", "Better Off Alone", 137, 214], ["Darude", "Sandstorm", 136, 225], ["ATB", "9 PM (Till I Come)", 130, 201], ["Sash!", "Ecuador", 135, 205], ["Fragma", "Toca's Miracle", 136, 199], ["Gigi D'Agostino", "L'Amour Toujours", 140, 240], ["Kernkraft 400", "Zombie Nation", 142, 215], ["O-Zone", "Dragostea Din Tei", 130, 214], ["Safri Duo", "Played-A-Live (The Bongo Song)", 138, 210]]}, {"name": "Ретро 70–80-х", "tracks": [["Earth, Wind & Fire", "Boogie Wonderland", 132, 288], ["Bonnie Tyler", "Holding Out for a Hero", 148, 262], ["Michael Sembello", "Maniac", 160, 245], ["Kenny Loggins", "Danger Zone", 157, 216], ["Queen", "Don't Stop Me Now", 156, 209], ["Steppenwolf", "Born to Be Wild", 146, 210], ["The Knack", "My Sharona", 148, 240], ["Blondie", "Call Me", 142, 212], ["Soft Cell", "Tainted Love", 145, 163], ["The B-52's", "Love Shack", 134, 261], ["The Weather Girls", "It's Raining Men", 136, 240], ["Patrick Hernandez", "Born to Be Alive", 132, 210], ["Laura Branigan", "Gloria", 131, 237], ["New Order", "Blue Monday '88", 130, 249], ["Salt-N-Pepa", "Push It", 130, 240], ["Van Halen", "Jump", 130, 244], ["Dead or Alive", "You Spin Me Round (Like a Record)", 128, 195], ["Duran Duran", "Hungry Like the Wolf", 128, 221], ["Depeche Mode", "Just Can't Get Enough", 128, 220], ["Donna Summer", "I Feel Love", 128, 353], ["Kiss", "I Was Made for Lovin' You", 128, 271], ["Village People", "Y.M.C.A.", 127, 286], ["Bananarama", "Venus", 127, 218], ["Pet Shop Boys", "Go West", 126, 303], ["Eurythmics", "Sweet Dreams (Are Made of This)", 126, 216], ["Boney M.", "Rasputin", 126, 283], ["Earth, Wind & Fire", "September", 126, 215], ["Technotronic", "Pump Up the Jam", 125, 217], ["Lipps Inc.", "Funkytown", 125, 239], ["Michael Jackson", "Wanna Be Startin' Somethin'", 122, 363]]}, {"name": "Электроника, Big Beat, Bass", "tracks": [["The Prodigy", "Firestarter", 141, 280], ["Fatboy Slim", "The Rockafeller Skank", 152, 238], ["The Prodigy", "Omen", 140, 216], ["Skrillex", "Scary Monsters and Nice Sprites", 140, 243], ["The Prodigy", "Invaders Must Die", 140, 295], ["Fatboy Slim & Riva Starr feat. Beardyman", "Eat Sleep Rave Repeat", 128, 210], ["The Prodigy", "Take Me to the Hospital", 140, 220], ["The Chemical Brothers", "Hey Boy Hey Girl", 129, 290], ["The Prodigy", "Breathe", 130, 240], ["Basement Jaxx", "Where's Your Head At", 130, 284], ["Faithless", "Insomnia", 127, 215], ["Skrillex, Fred again.. & Flowdan", "Rumble", 140, 180], ["Flux Pavilion", "I Can't Stop", 140, 306], ["Nero", "Promises", 140, 257], ["Rusko", "Woo Boost", 140, 210], ["Magnetic Man", "I Need Air", 140, 210], ["Doctor P", "Sweet Shop", 140, 240], ["Baauer", "Harlem Shake", 140, 196], ["Knife Party", "Bonfire", 128, 270], ["deadmau5", "Ghosts 'n' Stuff", 128, 195], ["Duck Sauce", "Barbra Streisand", 128, 195], ["Martin Solveig & Dragonette", "Hello", 128, 210], ["Example", "Changed the Way You Kiss Me", 127, 195], ["FISHER", "Losing It", 125, 245], ["Peggy Gou", "(It Goes Like) Nanana", 130, 210], ["Artful Dodger feat. Craig David", "Re-Rewind", 132, 210], ["Shanks & Bigfoot", "Sweet Like Chocolate", 134, 210], ["Daniel Bedingfield", "Gotta Get Thru This", 133, 160], ["Run-DMC vs Jason Nevins", "It's Like That", 130, 248], ["Caravan Palace", "Lone Digger", 128, 230]]}, {"name": "Поп-хиты: разгон", "tracks": [["Britney Spears", "Toxic", 143, 199], ["Bruno Mars", "Locked Out of Heaven", 144, 233], ["Britney Spears", "Womanizer", 139, 224], ["Black Eyed Peas", "Pump It", 154, 213], ["Martin Garrix & Dua Lipa", "Scared to Be Lonely", 138, 220], ["Loreen", "Tattoo", 150, 183], ["BLACKPINK", "DDU-DU DDU-DU", 140, 209], ["Pitbull feat. Christina Aguilera", "Feel This Moment", 136, 229], ["Katy Perry", "Hot n Cold", 132, 220], ["LMFAO", "Party Rock Anthem", 130, 262], ["Dua Lipa", "Physical", 147, 193], ["Ed Sheeran", "Shivers", 141, 207], ["Calvin Harris & Ellie Goulding", "Miracle", 143, 211], ["Michael Jackson", "Beat It", 139, 258], ["Jessie J, Ariana Grande & Nicki Minaj", "Bang Bang", 150, 199], ["Bruno Mars", "Runaway Baby", 150, 148], ["Marshmello", "Alone", 142, 200], ["Lady Gaga", "Applause", 140, 212], ["Martin Garrix & Bebe Rexha", "In the Name of Love", 134, 195], ["Ava Max", "Sweet but Psycho", 133, 187], ["Nelly Furtado", "Maneater", 132, 258], ["Britney Spears", "Till the World Ends", 132, 238], ["PSY", "Gangnam Style", 132, 219], ["Ariana Grande feat. Zedd", "Break Free", 130, 214], ["Jennifer Lopez feat. Pitbull", "On the Floor", 130, 231], ["Usher feat. will.i.am", "OMG", 130, 269], ["Pitbull feat. Kesha", "Timber", 130, 204], ["LMFAO", "Sexy and I Know It", 130, 199], ["Black Eyed Peas", "Boom Boom Pow", 130, 251], ["Chris Brown", "Turn Up the Music", 130, 227], ["Loreen", "Euphoria", 130, 180], ["BLACKPINK", "How You Like That", 130, 181], ["Katy Perry", "Part of Me", 130, 216], ["Macklemore & Ryan Lewis", "Can't Hold Us", 146, 258]]}, {"name": "Рок и поп-панк", "tracks": [["The Killers", "Mr. Brightside", 148, 222], ["Muse", "Knights of Cydonia", 137, 366], ["Imagine Dragons", "Radioactive", 137, 186], ["The Killers", "Somebody Told Me", 138, 197], ["Avril Lavigne", "Girlfriend", 152, 216], ["Fall Out Boy", "The Phoenix", 138, 244], ["AC/DC", "Thunderstruck", 134, 292], ["Muse", "Plug In Baby", 137, 219], ["Imagine Dragons", "Whatever It Takes", 135, 201], ["Foo Fighters", "Everlong", 158, 250], ["The Killers", "When You Were Young", 130, 220], ["Blink-182", "All the Small Things", 148, 168], ["Avril Lavigne", "Sk8er Boi", 150, 204], ["Kelly Clarkson", "Since U Been Gone", 131, 188], ["Paramore", "Still Into You", 136, 216], ["Fall Out Boy", "My Songs Know What You Did in the Dark (Light Em Up)", 152, 186], ["Gorillaz", "Feel Good Inc.", 139, 221], ["Linkin Park", "Faint", 135, 162], ["AC/DC", "Shoot to Thrill", 141, 317], ["Blur", "Song 2", 130, 122], ["Muse", "Uprising", 128, 303], ["Måneskin", "Beggin'", 134, 211], ["Imagine Dragons", "Believer", 125, 204], ["The Offspring", "Pretty Fly (For a White Guy)", 133, 188], ["Foo Fighters", "Best of You", 130, 255], ["Kings of Leon", "Sex on Fire", 153, 203], ["Outkast", "Hey Ya!", 159, 235], ["Ozzy Osbourne", "Crazy Train", 138, 291], ["Skillet", "Monster", 135, 178], ["The White Stripes", "Seven Nation Army", 124, 232], ["Rammstein", "Du Hast", 125, 234], ["Metallica", "Enter Sandman", 123, 331]]}, {"name": "Транс, Hands Up, Hardstyle", "tracks": [["Scooter", "How Much Is the Fish?", 142, 225], ["Basshunter", "Now You're Gone", 142, 155], ["Scooter", "Nessaja", 142, 227], ["Tiësto", "Adagio for Strings", 138, 240], ["Basshunter", "All I Ever Wanted", 145, 177], ["Scooter", "Maria (I Like It Loud)", 140, 230], ["Tiësto", "Traffic", 138, 220], ["Groove Coverage", "Moonlight Shadow", 140, 203], ["Cascada", "Everytime We Touch", 142, 197], ["Basshunter", "Boten Anna", 140, 208], ["Scooter", "One (Always Hardcore)", 145, 225], ["Headhunterz", "Dragonborn", 150, 210], ["Paul van Dyk", "For an Angel", 138, 240], ["Robert Miles", "Children", 137, 240], ["Tiësto", "Lethal Industry", 138, 240], ["System F", "Out of the Blue", 138, 220], ["Gouryella", "Gouryella", 140, 240], ["Rank 1", "Airwave", 138, 220], ["Binary Finary", "1998", 138, 210], ["Push", "Universal Nation", 138, 210], ["Mauro Picotto", "Komodo", 138, 210], ["Armin van Buuren & Vini Vici feat. Hilight Tribe", "Great Spirit", 138, 200], ["Hilight Tribe", "Free Tibet (Vini Vici Remix)", 138, 210], ["Vini Vici", "The Tribe", 138, 210], ["Infected Mushroom", "Becoming Insane", 145, 270], ["Astrix", "Deep Jungle Walk", 142, 270], ["Darude", "Feel the Beat", 136, 210], ["Ian Van Dahl", "Castles in the Sky", 138, 201], ["Lasgo", "Something", 140, 221], ["DJ Sammy & Yanou feat. Do", "Heaven", 138, 232], ["Kate Ryan", "Désenchantée", 138, 208], ["Groove Coverage", "God Is a Girl", 140, 180], ["Cascada", "Evacuate the Dancefloor", 127, 207], ["Basshunter", "DotA", 140, 200], ["Scooter", "Ramp! (The Logical Song)", 142, 234], ["Brennan Heart & Wildstylez", "Lose My Mind", 150, 210], ["Wildstylez feat. Niels Geusebroek", "Year of Summer", 150, 210], ["Headhunterz & Wildstylez", "Blame It on the Music", 150, 210], ["Da Tweekaz", "Jägermeister", 150, 210], ["Showtek", "FTS", 150, 210]]}];
+const tier = b => b >= 150 ? "p25" : b >= 140 ? "p20" : b >= 130 ? "p15" : b >= 125 ? "p10" : "p5";
+const fmt = s => { const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h} ч ${String(m).padStart(2, "0")} мин` : `${m} мин`; };
+const clock = s => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return `${h}:${String(m).padStart(2, "0")}`; };
+const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const links = t => { const q = encodeURIComponent(`${t[0].replace(/ feat\. .*/i, "")} ${t[1]}`);
+  return `<span class="links"><a href="https://www.beatport.com/search?q=${q}" target="_blank" rel="noopener">Beatport</a><a href="https://music.apple.com/search?term=${q}" target="_blank" rel="noopener">Apple Music</a><a href="https://music.yandex.ru/search?text=${q}" target="_blank" rel="noopener">Яндекс</a></span>`; };
+let minBpm = 0;
+try { const v = parseInt(localStorage.getItem("bpmMin") || "0", 10); if ([0,130,140].includes(v)) minBpm = v; } catch (e) {}
+
+function render() {
+  const visible = DATA.map(b => b.tracks.filter(t => t[2] >= minBpm));
+  const all = visible.flat();
+  const total = all.reduce((s, t) => s + t[3], 0);
+  const bpms = all.map(t => t[2]);
+  const avg = bpms.length ? Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length) : 0;
+  document.getElementById("stats").innerHTML = all.length
+    ? `<span><b>${all.length}</b> треков</span><span><b>${fmt(total)}</b></span><span>BPM <b>${Math.min(...bpms)}–${Math.max(...bpms)}</b></span><span>среднее <b>${avg}</b></span>`
+    : `<span>Нет треков под фильтр</span>`;
+
+  let start = 0, jump = "", html = "";
+  DATA.forEach((b, i) => {
+    const tr = visible[i];
+    const dur = tr.reduce((s, t) => s + t[3], 0);
+    const bp = tr.map(t => t[2]);
+    const id = "b" + (i + 1);
+    jump += `<a href="#${id}">${esc(b.name)}<small>${tr.length}</small></a>`;
+    const strip = b.tracks.map(t => {
+      const h = Math.max(8, Math.round((t[2] - 115) / (162 - 115) * 100));
+      return `<i class="${tier(t[2])}${t[2] < minBpm ? " off" : ""}" style="height:${h}%" title="${t[2]} BPM"></i>`;
+    }).join("");
+    const rows = tr.length ? tr.map((t, k) => `<li><span class="n">${k + 1}</span><span class="tt"><span class="t">${esc(t[1])}</span><span class="a">${esc(t[0])}</span>${links(t)}</span><span class="pill ${tier(t[2])}">${t[2]}</span><span class="dur">${mmss(t[3])}</span></li>`).join("")
+      : `<li class="empty" style="display:block">В этом блоке нет треков под фильтр</li>`;
+    html += `<section class="block" id="${id}">
+      <div class="bhead">
+        <div class="bhead-top">
+          <div><div class="bnum">БЛОК ${i + 1} · СТАРТ ${clock(start)}</div><h2>${esc(b.name)}</h2></div>
+          <button type="button" class="btn" id="copy-${id}" data-block="${i}">Скопировать</button>
+        </div>
+        <div class="bmeta"><span>${tr.length} треков</span><span>${fmt(dur)}</span>${bp.length ? `<span>BPM ${Math.min(...bp)}–${Math.max(...bp)}</span><span>ср. ${Math.round(bp.reduce((a, c) => a + c, 0) / bp.length)}</span>` : ""}</div>
+        <div class="strip" aria-hidden="true">${strip}</div>
+      </div>
+      <ol class="tracks">${rows}</ol>
+    </section>`;
+    start += dur;
+  });
+  document.getElementById("jump").innerHTML = jump;
+  document.getElementById("blocks").innerHTML = html;
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.min === minBpm)));
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 1800);
+}
+function copyText(text, n) {
+  const done = () => toast(`Скопировано: ${n} треков`);
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.className = "fallback"; ta.value = text; document.body.appendChild(ta);
+    ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    if (ok) { ta.remove(); done(); } else { ta.className = ""; ta.style.cssText = "position:fixed;inset:20% 16px auto;height:50%;z-index:30;width:calc(100% - 32px)"; toast("Выделите текст и скопируйте вручную"); ta.addEventListener("blur", () => ta.remove()); }
+  };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+}
+const lines = tr => tr.map(t => `${t[0]} — ${t[1]}`).join("\n");
+
+document.addEventListener("click", e => {
+  const f = e.target.closest(".seg button");
+  if (f) { minBpm = +f.dataset.min; try { localStorage.setItem("bpmMin", String(minBpm)); } catch (err) {} render(); return; }
+  const c = e.target.closest("[data-block]");
+  if (c) { const tr = DATA[+c.dataset.block].tracks.filter(t => t[2] >= minBpm); copyText(lines(tr), tr.length); return; }
+  if (e.target.closest("#copyAll")) {
+    const parts = DATA.map(b => { const tr = b.tracks.filter(t => t[2] >= minBpm); return tr.length ? `# ${b.name}\n${lines(tr)}` : ""; }).filter(Boolean);
+    copyText(parts.join("\n\n"), DATA.reduce((s, b) => s + b.tracks.filter(t => t[2] >= minBpm).length, 0));
+  }
+});
+render();
+</script>
+
+</body>
+</html>
